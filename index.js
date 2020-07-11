@@ -1,3 +1,5 @@
+'use strict';
+
 const store = {
   items: [
     { id: cuid(), name: 'apples', checked: false },
@@ -5,7 +7,8 @@ const store = {
     { id: cuid(), name: 'milk', checked: true },
     { id: cuid(), name: 'bread', checked: false }
   ],
-  hideCheckedItems: false
+  hideCheckedItems: false,
+  editItem: false
 };
 
 const generateItemElement = function (item) {
@@ -30,10 +33,47 @@ const generateItemElement = function (item) {
     </li>`;
 };
 
+function generateEditItemElement(item) {
+  let itemTitle = 
+  `<span class='shopping-item edit-item shopping-item__checked'>
+    <form>
+      <input class="shopping-item edit-item" type="text" value="${item.name}" />
+    </form>
+  </span>`;
+
+  if (!item.checked) {
+    itemTitle = `
+     <span class='shopping-item'>
+      <form>
+        <input class="shopping-item edit-item" type="text" value="${item.name}" />
+      </form>
+     </span>
+    `;
+  }
+
+  return `
+    <li class='js-item-element' data-item-id='${item.id}'>
+      ${itemTitle}
+      <div class='shopping-item-controls'>
+        <button class='shopping-item-toggle js-item-toggle'>
+          <span class='button-label'>check</span>
+        </button>
+        <button class='shopping-item-delete js-item-delete'>
+          <span class='button-label'>delete</span>
+        </button>
+      </div>
+    </li>`;
+}
+
 const generateShoppingItemsString = function (shoppingList) {
   const items = shoppingList.map((item) => generateItemElement(item));
   return items.join('');
 };
+
+function generateShoppingItemsEditString(shoppingList) {
+  const items = shoppingList.map((item) => generateEditItemElement(item));
+  return items.join('');
+}
 
 /**
  * Render the shopping list in the DOM
@@ -56,7 +96,13 @@ const render = function () {
    * done (or not done, if that's the current settings), 
    * so we send our 'items' into our HTML generation function
    */
-  const shoppingListItemsString = generateShoppingItemsString(items);
+  let shoppingListItemsString = '';
+  if(store.editItem) {
+    shoppingListItemsString = generateShoppingItemsEditString(items);
+  }
+  else {
+    shoppingListItemsString = generateShoppingItemsString(items);
+  }
 
   // insert that HTML into the DOM
   $('.js-shopping-list').html(shoppingListItemsString);
@@ -146,6 +192,41 @@ const handleToggleFilterClick = function () {
 };
 
 /**
+ * Toggles edit functionality and submits changes
+ */
+function toggleEdit() {
+  store.editItem = !store.editItem;
+  if(store.editItem) {
+    $('.js-edit-button').html('Submit');
+  }
+  else {
+    $('.js-edit-button').html('Edit');
+    updateTitles();
+  }
+}
+
+/**
+ * Updates the titles of items based on input received
+ */
+function updateTitles() {
+  $('.edit-item').each(function(){
+    //console.log($(this).val());
+    const item = store.items.find(data => data.id === getItemIdFromElement($(this)));
+    item.name = $(this).val();
+  });
+}
+
+/**
+ * Event listener for edit button
+ */
+function handleEditClick() {
+  $('.js-edit-button').click(function() {
+    toggleEdit();
+    render();
+  });
+}
+
+/**
  * This function will be our callback when the
  * page loads. It is responsible for initially 
  * rendering the shopping list, then calling 
@@ -160,6 +241,7 @@ const handleShoppingList = function () {
   handleItemCheckClicked();
   handleDeleteItemClicked();
   handleToggleFilterClick();
+  handleEditClick();
 };
 
 // when the page loads, call `handleShoppingList`
